@@ -5,6 +5,7 @@ import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import cv2
 
 class DQN(nn.Module):
     def __init__(self, lr,input_dims,fc1_dims,fc2_dims,n_actions):
@@ -65,6 +66,28 @@ class Agent():
         self.action_memory= np.zeros(self.mem_size, dtype=np.int32) #discrete actions 0,1
         self.reward_memory= np.zeros(self.mem_size, dtype=np.float32)
         self.terminal_memory=np.zeros(self.mem_size, dtype=np.bool)
+
+
+    def preprocess(self,observation,op_dims,arrays):
+ 
+        gray=cv2.cvtColor(observation,cv2.COLOR_BGR2GRAY)
+        scaled=cv2.resize(gray,(110,84))
+        #crop image to (84,84)
+        dims1= int(55-(0.5*op_dims))
+        dims2= int(55+(0.5*op_dims))
+        cropped= scaled[dims1:dims2,:]
+
+        for i in range(3):
+            arrays[i]=np.copy(arrays[i+1])
+
+        arrays[3]=cropped
+    
+        array_stacked=arrays.reshape((84,84,4))
+
+        return array_stacked
+    
+        
+
 
     def store_transition(self,state,action,reward,state_ , done): #store transitions in agent's memory. state_=== next state
 
