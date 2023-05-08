@@ -7,30 +7,35 @@ if __name__ == '__main__' :
 
     env=gym.make('ALE/Breakout-v5',full_action_space=False) #4 actions instead of 18
     #env=gym.make('CartPole-v1') #2 actions
-    agent=Agent(gamma=0.99,epsilon=1.0,batch_size=16,n_actions=4,eps_end=0.01,input_dims=[210*160*3], lr=0.003)
+    agent=Agent(gamma=0.99,epsilon=1.0,batch_size=16,n_actions=4,eps_end=0.01,input_dims=[84*84*4], lr=0.003)
     #agent=Agent(gamma=0.99,epsilon=1.0,batch_size=32,n_actions=2,eps_end=0.01,input_dims=[4], lr=0.003)
 
     scores, eps_history= [],[] #for plotting
+    
 
     n_episodes=100
 
     for i in range(n_episodes):
+        arrays=[np.zeros((84,84)) for i in range(4)]  #for stacking 4 frames
         score=0
         done=False
         observation=env.reset() #state
-        observation=observation.flatten()
+        #observation=observation.flatten()
         observation = np.array(observation, dtype=np.float32)
         while not done:
-            
-            action=agent.choose_action(observation)
+            observation_modified=agent.preprocess(observation,84,arrays)
+            action=agent.choose_action(observation_modified)
             #observation_,reward,done,truncate,info= env.step(action) #observation_ == new state
             observation_,reward,done,info= env.step(action) #observation_ == new state
-            
-            observation_=observation_.flatten()
+
             observation_=np.array(observation_,dtype=np.float32)
+            observation_next_modified=agent.preprocess(observation_,84,arrays)
+            
+            # observation_=observation_.flatten()
+         
 
             score+=reward
-            agent.store_transition(observation,action,reward,observation_,done)
+            agent.store_transition(observation_modified,action,reward,observation_next_modified,done)
             agent.learn()
             observation=observation_
             epsilon=agent.epsilon
