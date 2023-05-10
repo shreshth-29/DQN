@@ -16,7 +16,8 @@ if __name__ == '__main__' :
     n_episodes=100
 
     for i in range(n_episodes):
-        arrays=[np.zeros((84,84)) for i in range(4)]  #for stacking 4 frames
+        print('episode no. ',i+1)
+        arrays=np.array([np.zeros((84,84)) for i in range(4)]) #for stacking 4 frames
         score=0
         done=False
         observation=env.reset() #state
