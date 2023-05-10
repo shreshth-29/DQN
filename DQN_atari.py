@@ -20,10 +20,17 @@ class DQN(nn.Module):
         
         print(self.fc1_dims)
         print(*self.input_dims)
-        
-        self.fc1=nn.Linear(*self.input_dims,self.fc1_dims)
-        self.fc2=nn.Linear(self.fc1_dims,fc2_dims)
-        self.fc3=nn.Linear(self.fc2_dims, self.n_actions)
+
+        self.conv1=nn.Conv2d(4,16,8,stride=4)
+        self.conv2=nn.Conv2d(16,32,4,stride=2)
+        self.fc1=nn.Linear(2592,256)
+        self.out=nn.Linear(256,self.n_actions)
+
+    
+        # self.fc1=nn.Linear(*self.input_dims,self.fc1_dims)
+        # self.fc2=nn.Linear(self.fc1_dims,fc2_dims)
+        # self.fc3=nn.Linear(self.fc2_dims, self.n_actions)
+
         self.optimizer=optim.Adam(self.parameters(),lr=lr)
         self.loss= nn.MSELoss()
         self.device=T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -31,15 +38,32 @@ class DQN(nn.Module):
         self.to(self.device)
 
     def forward(self,state):
-
-        x=self.fc1(state)
+        #print(state.shape)
+        x=self.conv1(state)
         x=F.relu(x)
-
-        x=self.fc2(x)
+        #print(x.shape)
+        x=self.conv2(x)
         x=F.relu(x)
+        print(x.shape)
+        arrays=T.empty(size=(16,32*9*9))
+        #print(len(x))
+        for i in range(0,len(x)):
+          array=x[i]
+          #print(array.shape)
+          
+          arrays[i]=T.flatten(array)
+        #print(arrays.shape)
+        x=T.Tensor(arrays).to(self.device)
 
-        Q_values=self.fc3(x) #we want the raw estimate of the agent, so no activation function in the final layer
 
+        # x=T.flatten(x)
+        #print(x.shape)
+        x=self.fc1(x)
+        x=F.relu(x)
+        #print(x.shape)
+        Q_values=self.out(x) #we want the raw estimate of the agent, so no activation function in the final layer
+        #print(Q_values.shape)
+        #print(Q_values)
         return Q_values
     
 class Agent():
@@ -61,30 +85,34 @@ class Agent():
 
         #for replay buffer
 
-        self.state_memory= np.zeros( (self.mem_size, *input_dims) , dtype=np.float32)
-        self.new_state_memory= np.zeros( (self.mem_size, *input_dims) , dtype=np.float32)
+        self.state_memory= np.zeros( (self.mem_size, *input_dims) , dtype=np.float32).reshape((self.mem_size,4,84,84))
+        #print(self.state_memory.shape)
+        self.new_state_memory= np.zeros( (self.mem_size, *input_dims) , dtype=np.float32).reshape((self.mem_size,4,84,84))
         self.action_memory= np.zeros(self.mem_size, dtype=np.int32) #discrete actions 0,1
         self.reward_memory= np.zeros(self.mem_size, dtype=np.float32)
         self.terminal_memory=np.zeros(self.mem_size, dtype=np.bool)
 
 
     def preprocess(self,observation,op_dims,arrays):
- 
+        
+        arrays=arrays.reshape((4,84,84))
         gray=cv2.cvtColor(observation,cv2.COLOR_BGR2GRAY)
         scaled=cv2.resize(gray,(110,84))
+        #print(scaled.shape)
         #crop image to (84,84)
         dims1= int(55-(0.5*op_dims))
         dims2= int(55+(0.5*op_dims))
-        cropped= scaled[dims1:dims2,:]
+        cropped= scaled[:,dims1:dims2]
+        #print(cropped.shape)
 
         for i in range(3):
             arrays[i]=np.copy(arrays[i+1])
 
-        arrays[3]=cropped
+        arrays[3]=np.copy(cropped)
     
-        array_stacked=arrays.reshape((84,84,4))
+        #array_stacked=arrays.reshape((84,84,4))
 
-        return array_stacked
+        return arrays
     
         
 
@@ -143,7 +171,9 @@ class Agent():
             #self.state_memory[batch] will then select 8 states from memory. this will be stored in state_batch
 
             device=self.Q_eval.device
+
             state_batch=T.tensor(states).to(device)
+            print(T.tensor(states).shape)
             new_state_batch = T.tensor(new_states).to(device)
             reward_batch = T.tensor(rewards).to(device)
             terminal_batch= T.tensor(terminals).to(device)
