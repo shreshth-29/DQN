@@ -17,14 +17,22 @@ if __name__ == '__main__' :
 
     for i in range(n_episodes):
         print('episode no. ',i+1)
+        
         arrays=np.array([np.zeros((84,84)) for i in range(4)]) #for stacking 4 frames
         score=0
         done=False
         observation=env.reset() #state
         #observation=observation.flatten()
         observation = np.array(observation, dtype=np.float32)
+        observation_count=0
         while not done:
+          
             observation_modified=agent.preprocess(observation,84,arrays)
+            print('observation number ', observation_count)
+            
+            print(observation_modified)
+            print(observation_modified.shape)
+
             action=agent.choose_action(observation_modified)
             #observation_,reward,done,truncate,info= env.step(action) #observation_ == new state
             observation_,reward,done,info= env.step(action) #observation_ == new state
@@ -40,6 +48,7 @@ if __name__ == '__main__' :
             agent.learn()
             observation=observation_
             epsilon=agent.epsilon
+            observation_count+=1
             
         scores.append(score)
         eps_history.append(epsilon)
