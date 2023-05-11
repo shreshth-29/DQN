@@ -18,8 +18,8 @@ class DQN(nn.Module):
         self.n_actions=n_actions
         self.lr=lr
         
-        print(self.fc1_dims)
-        print(*self.input_dims)
+        #print(self.fc1_dims)
+        #print(*self.input_dims)
 
         self.conv1=nn.Conv2d(4,16,8,stride=4)
         self.conv2=nn.Conv2d(16,32,4,stride=2)
@@ -39,13 +39,14 @@ class DQN(nn.Module):
 
     def forward(self,state):
         #print(state.shape)
+        #state=np.float32(state)
         x=self.conv1(state)
         x=F.relu(x)
         #print(x.shape)
         x=self.conv2(x)
         x=F.relu(x)
-        print(x.shape)
-        arrays=T.empty(size=(16,32*9*9))
+        #print(x.shape)
+        arrays=T.empty(size=(16,32*9*9),dtype=T.float32)
         #print(len(x))
         for i in range(0,len(x)):
           array=x[i]
@@ -111,7 +112,7 @@ class Agent():
         arrays[3]=np.copy(cropped)
     
         #array_stacked=arrays.reshape((84,84,4))
-
+        arrays = arrays.astype('float32')
         return arrays
     
         
@@ -173,7 +174,7 @@ class Agent():
             device=self.Q_eval.device
 
             state_batch=T.tensor(states).to(device)
-            print(T.tensor(states).shape)
+            #print(T.tensor(states).shape)
             new_state_batch = T.tensor(new_states).to(device)
             reward_batch = T.tensor(rewards).to(device)
             terminal_batch= T.tensor(terminals).to(device)
